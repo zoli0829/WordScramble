@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var usedWords = [String]()
     @State private var rootWord = ""
     @State private var newWord = ""
+    @State private var score = 0
     
     @State private var errorTitle = ""
     @State private var errorMessage = ""
@@ -30,6 +31,18 @@ struct ContentView: View {
                             Image(systemName: "\(word.count).circle")
                             Text(word)
                         }
+                    }
+                }
+                
+                Section {
+                    Text("Score: \(score)")
+                }
+            }
+            // Add a toolbar that calls startGame(), so users can restart with a new word whenever they want to
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing){
+                    Button("Restart") {
+                        startGame()
                     }
                 }
             }
@@ -66,6 +79,18 @@ struct ContentView: View {
             return
         }
         
+        guard !isLongEnough(word: answer) else {
+            wordError(title: "Word is less than 3 letters", message: "Word has to be minimum 3 letters!")
+            return
+        }
+        
+        guard isNotStartingWord(word: answer) else {
+            wordError(title: "Word is the starting word", message: "Using the starting word is not allowed!")
+            return
+        }
+        // track player score
+        score += answer.count
+        
         withAnimation {
             usedWords.insert(answer, at: 0)
         }
@@ -77,6 +102,9 @@ struct ContentView: View {
             if let startWords = try? String(contentsOf: startWordsURL) {
                 let allWords = startWords.components(separatedBy: "\n")
                 rootWord = allWords.randomElement() ?? "silkworm"
+                // clear the array
+                usedWords.removeAll()
+                score = 0
                 return
             }
         }
@@ -107,6 +135,14 @@ struct ContentView: View {
         let range = NSRange(location: 0, length: word.utf16.count)
         let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
         return misspelledRange.location == NSNotFound
+    }
+    
+    func isLongEnough(word: String) -> Bool {
+        word.count < 3
+    }
+    
+    func isNotStartingWord(word: String) -> Bool {
+        word != rootWord
     }
     
     func wordError(title: String, message: String) {
